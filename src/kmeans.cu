@@ -54,7 +54,7 @@ public:
 
 	void print() const;
 
-	void readDataFromFile();
+	void ReadDataFromFile();
 
 	int get_npoints() const;
 	int get_nloops() const;
@@ -205,9 +205,10 @@ void Kmeans::print() const
 	std::cout << "filename : "      << filename << std::endl;
 }
 
-void Kmeans::readDataFromFile()
+void Kmeans::ReadDataFromFile()
 {
 	FILE *infile;
+
 	if ((infile = fopen(filename, "r")) == NULL) {
 		fprintf(stderr, "Error: no such file (%s)\n", filename);
 		exit(1);
@@ -218,6 +219,8 @@ void Kmeans::readDataFromFile()
 			npoints++;			
 	}
 	rewind(infile);
+	printf("=> %d\n", npoints);
+
 	// error check for clusters
 	if (npoints < min_nclusters){
 		printf("Error: min_nclusters(%d) > npoints(%d) -- cannot proceed\n", 
@@ -227,13 +230,14 @@ void Kmeans::readDataFromFile()
 	// read feature dim
 	while (fgets(line, MAX_LINE_LEN, infile) != NULL) {
 		if (strtok(line, " \t\n") != NULL) {
-			// ignore the id (first attribute), start from 2nd pos
+			nfeatures++;
 			while (strtok(NULL, " ,\t\n") != NULL)
 				nfeatures++;
 			break;
 		}
 	}        
 	rewind(infile);
+	printf("=> %d\n", nfeatures);
 
 	features   = (float*) malloc(npoints*nfeatures*sizeof(float));
 	//features    = (float**)malloc(npoints*          sizeof(float*));
@@ -242,14 +246,18 @@ void Kmeans::readDataFromFile()
 	//	features[i] = features[i-1] + nfeatures;
 
 	int sample_num = 0;
+	char *token;
 	while (fgets(line, MAX_LINE_LEN, infile) != NULL) {
-		if (strtok(line, " \t\n") == NULL) continue;            
-		for (int j=0; j<nfeatures; j++) {
-			features[sample_num] = atof(strtok(NULL, " ,\t\n"));             
+		token = strtok(line, " ,\t\n"); 
+		while( token != NULL ) {
+			//printf( " %s\n", token);
+			features[sample_num] = atof(token);
 			sample_num++;
-		}            
+			token = strtok(NULL, " ,\t\n");
+		}
 	}
 	fclose(infile);
+	printf("=> %d\n", sample_num);
 
 	printf("\nReading file completed\n"
 			"\nNumber of objects: %d\n"
@@ -395,7 +403,7 @@ void run_kmeans_cpu(Kmeans &kmeans, int nclusters, int nfeatures, int npoints,
 	free(new_centers_members);
 	free(new_membership);
 }
-
+/*
 void run_cpu(Kmeans &kmeans)
 {
 	int min_nclusters = kmeans.get_maxnclusters();
@@ -438,9 +446,8 @@ void run_cpu(Kmeans &kmeans)
 		}
 
 	}
-
-
 }
+*/
 
 
 int main(int argc, char **argv)
@@ -449,10 +456,11 @@ int main(int argc, char **argv)
 
 	readcmdline(argc, argv, kmeans);
 
-	kmeans.readDataFromFile();
+	kmeans.ReadDataFromFile();
+
 	kmeans.print();
 
-	run_cpu(kmeans);
+	//run_cpu(kmeans);
 
 
 	return 0;
