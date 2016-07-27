@@ -1,7 +1,31 @@
-#ifndef _IO_H
-#define _IO_H
+#ifndef _IO_H_
+#define _IO_H_
 
-#include "kmeans.h"
+#include <stdio.h>                                                              
+#include <stdlib.h>                                                             
+#include <iostream>  
+
+class PARAMS {
+public:
+	PARAMS() {
+		filename = NULL;	
+		threshold = 0.001f;
+		max_nclusters = 5;
+		min_nclusters = 5;
+		nloops = 1000;
+		isRMSE = 0;
+		isOutput = 0;
+	}
+	~PARAMS() {}
+
+	char            *filename;                                                  
+	float           threshold;                                                  
+	int             max_nclusters;                                              
+	int             min_nclusters;                                              
+	int             nloops;                                                     
+	int             isRMSE;                                                     
+	int             isOutput;                                                   
+};
 
 void print_usage(char *argv0) {                                                 
 	const char *info=                                                           
@@ -17,7 +41,7 @@ void print_usage(char *argv0) {
 	fprintf(stderr, info, argv0);                                               
 }                                                                               
 
-void readcmdline(int argc, char **argv, Kmeans &kmeans)
+void readcmdline(int argc, char **argv, PARAMS &params)
 {
 	int 			opt;
 	extern char 	*optarg;
@@ -30,25 +54,25 @@ void readcmdline(int argc, char **argv, Kmeans &kmeans)
 	while ( (opt=getopt(argc,argv,"i:t:m:n:l:roh"))!= EOF) {
 		switch (opt) {
 			case 'i':
-				kmeans.set_filename(optarg);
+				params.filename = (optarg);
 				break;
 			case 't': 
-				kmeans.set_threshold(atof(optarg));
+				params.threshold = atof(optarg);
 				break;
 			case 'm': 
-				kmeans.set_maxnclusters(atoi(optarg));
+				params.max_nclusters = atoi(optarg);
 				break;
 			case 'n': 
-				kmeans.set_minnclusters(atoi(optarg));
-				break;
-			case 'r':
-				kmeans.set_isRMSE(1);
-				break;
-			case 'o': 
-				kmeans.set_isOutput(1);
+				params.min_nclusters = atoi(optarg);
 				break;
 			case 'l': 
-				kmeans.set_nloops(atoi(optarg));
+				params.nloops = atoi(optarg);
+				break;
+			case 'r':
+				params.isRMSE = 1;
+				break;
+			case 'o': 
+				params.isOutput = 1;
 				break;
 			case 'h': 
 				print_usage(argv[0]);
@@ -60,7 +84,7 @@ void readcmdline(int argc, char **argv, Kmeans &kmeans)
 	}
 
 
-	if(kmeans.get_filename() == NULL) {
+	if(params.filename == NULL) {
 		print_usage(argv[0]);
 		exit(1);
 	}

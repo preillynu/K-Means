@@ -30,17 +30,14 @@ endif
 
 all: kmeans 
 
-kmeans.o: kmeans.cu
-	$(NVC) $(NVINC) $(GENCODE_FLAGS) -o $@ -c $<
-
-kmeans: kmeans.o
+kmeans: kmeans.cu 
 	$(NVC) $(NVINC) $(LDFLAG) $(GENCODE_FLAGS) -o $@ $+ $(LIBS) 
 	mkdir -p ../bin/
 	cp $@ ../bin/
 
 .PHONY: clean
 clean:
-	rm -rf kmeans kmeans.o
+	rm -rf kmeans 
 	rm -rf ../bin/kmeans
 
 clobber: clean

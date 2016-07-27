@@ -1,23 +1,169 @@
-#ifndef _KMEANS_CPU_H
-#define _KMEANS_CPU_H
+#ifndef _KMEANS_CPU_H_
+#define _KMEANS_CPU_H_
 
-void run_cpu(Kmeans &kmeans);
-void run_kmeans_cpu(Kmeans &kmeans, int nclusters, int nfeatures, int npoints,
-		float *data, int *membership, float *centers, float &delta);
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
 
+#define MAX_LINE_LEN 4096
 
-void run_cpu(Kmeans &kmeans)
+#ifndef FLT_MAX
+#define FLT_MAX 3.40282347e+38
+#endif
+
+//----------------------------------------------------------------------------//
+// CPU Kmeans Class 
+//----------------------------------------------------------------------------//
+class KmeansCpu {
+public:
+	KmeansCpu();
+	~KmeansCpu();
+
+	void print_param() const;
+	void ReadDataFromFile();
+
+	char 			*filename;
+	float 			threshold;
+	int 			max_nclusters;
+	int 			min_nclusters;
+	int 			best_nclusters;
+	int 			nfeatures;
+	int 			npoints;
+	int 			nloops;
+	int 			isRMSE;
+	float 			rmse;
+	int 			isOutput;
+	char 			line[MAX_LINE_LEN];
+
+	float 			*data;
+	int 			*membership;
+};
+
+KmeansCpu::KmeansCpu() : 
+	filename(NULL),
+	threshold(0.001f),
+	max_nclusters(5),
+	min_nclusters(5),
+	best_nclusters(0),
+	nfeatures(0),
+	npoints(0),
+	nloops(1000),
+	isRMSE(0),
+	rmse(0.f),
+	isOutput(0)
 {
-	int min_nclusters = kmeans.get_maxnclusters();
-	int max_nclusters = kmeans.get_maxnclusters();
-	int npoints       = kmeans.get_npoints();
-	int nloops        = kmeans.get_nloops(); 
-	int nfeatures     = kmeans.get_nfeatures();
-	float threshold   = kmeans.get_threshold();
+	data = NULL;
+	membership = NULL;
+}
 
-	float *data     = kmeans.get_data();
-	int *membership = kmeans.get_membership();
-	//float *centers  = kmeans.get_centers();
+KmeansCpu::~KmeansCpu() {
+	if(data != NULL)
+		free(data);
+
+	if(membership != NULL)
+		free(membership);
+}
+
+void KmeansCpu::print_param() const
+{
+	std::cout << "threshold : "     << threshold << std::endl;
+	std::cout << "max_ncluster : "  << max_nclusters << std::endl;
+	std::cout << "min_nclusters : " << min_nclusters << std::endl;
+	std::cout << "best_nclusters : " << best_nclusters << std::endl;
+
+	std::cout << "nfeatures : " << nfeatures << std::endl;
+	std::cout << "npoints : " << npoints << std::endl;
+	std::cout << "nloops : " << nloops << std::endl;
+	std::cout << "isRMSE : " << isRMSE << std::endl;
+	std::cout << "rmse : " << rmse << std::endl;
+	std::cout << "isOutput : " << isOutput << std::endl;
+
+	std::cout << "filename : "      << filename << std::endl;
+}
+
+//---------------------------------------------------------------------------//
+// read data from input file
+//---------------------------------------------------------------------------//
+void KmeansCpu::ReadDataFromFile()
+{
+	FILE *infile;
+
+	if ((infile = fopen(filename, "r")) == NULL) {
+		fprintf(stderr, "Error: no such file (%s)\n", filename);
+		exit(1);
+	}		
+	// read data points
+	while (fgets(line, MAX_LINE_LEN, infile) != NULL) {
+		if (strtok(line, " \t\n") != NULL)
+			npoints++;			
+	}
+	rewind(infile);
+	//printf("=> %d\n", npoints);
+
+	// error check for clusters
+	if (npoints < min_nclusters){
+		printf("Error: min_nclusters(%d) > npoints(%d) -- cannot proceed\n", 
+				min_nclusters, npoints);
+		exit(1);
+	}
+	// read feature dim
+	while (fgets(line, MAX_LINE_LEN, infile) != NULL) {
+		if (strtok(line, " \t\n") != NULL) {
+			nfeatures++;
+			while (strtok(NULL, " ,\t\n") != NULL)
+				nfeatures++;
+			break;
+		}
+	}        
+	rewind(infile);
+	//printf("=> %d\n", nfeatures);
+
+	data = (float*) malloc(npoints * nfeatures * sizeof(float));
+
+	int sample_num = 0;
+	char *token;
+	while (fgets(line, MAX_LINE_LEN, infile) != NULL) {
+		token = strtok(line, " ,\t\n"); 
+		while( token != NULL ) {
+			//printf( " %s\n", token);
+			data[sample_num] = atof(token);
+			sample_num++;
+			token = strtok(NULL, " ,\t\n");
+		}
+	}
+	fclose(infile);
+	//printf("=> %d\n", sample_num);
+
+
+	membership = (int*) malloc(npoints*sizeof(int));
+	for (int i=0; i < npoints; i++) membership[i] = -1;
+
+	printf("\nNumber of objects: %d\n"
+			"Number of features: %d\n", npoints, nfeatures);	
+}
+
+
+
+//----------------------------------------------------------------------------//
+// Functions
+//----------------------------------------------------------------------------//
+void run_cpu(KmeansCpu &kmeans);
+void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,  
+		        float *data, int *membership, float *centers, float &delta); 
+
+
+
+void run_cpu(KmeansCpu &kmeans)
+{
+	int min_nclusters = kmeans.min_nclusters;
+	int max_nclusters = kmeans.max_nclusters;
+	int npoints       = kmeans.npoints;
+	int nloops        = kmeans.nloops; 
+	int nfeatures     = kmeans.nfeatures;
+	float threshold   = kmeans.threshold;
+
+	float *data     = kmeans.data;
+	int *membership = kmeans.membership;
 
 
 	// search the best clusters for the input data
@@ -42,48 +188,46 @@ void run_cpu(Kmeans &kmeans)
 		}
 
 		// reset membership if needed
-
-		for(int i=0; i<nclusters; i++) {
-			for(int j=0; j<nfeatures; j++) {
-				std::cout << centers[i * nfeatures + j] << "\t";
-			}
-			std::cout << std::endl;
-		}
+		/*
+		   for(int i=0; i<nclusters; i++) {
+		   for(int j=0; j<nfeatures; j++) {
+		   std::cout << centers[i * nfeatures + j] << "\t";
+		   }
+		   std::cout << std::endl;
+		   }
+		   */
 
 		do {
 			delta = 0.f;
-			run_kmeans_cpu(kmeans, nclusters, nfeatures, npoints, data, 
-					membership, centers, delta);
+			run_kmeans_cpu(nclusters, nfeatures, npoints, data, membership, centers, delta);
 		} while((delta>threshold) && (++loop < nloops));
 
 
 		/*
-		std::cout << "\nafter\n";
-		for(int i=0; i<nclusters; i++) {
-			for(int j=0; j<nfeatures; j++) {
-				std::cout << centers[i * nfeatures + j] << "\t";
-			}
-			std::cout << std::endl;
-		}
+		   std::cout << "\nafter\n";
+		   for(int i=0; i<nclusters; i++) {
+		   for(int j=0; j<nfeatures; j++) {
+		   std::cout << centers[i * nfeatures + j] << "\t";
+		   }
+		   std::cout << std::endl;
+		   }
 
-		std::cout << "\nmembership\n";
-		for(int i=0; i<npoints; i++)
-			std::cout << membership[i] << std::endl;
-*/
+		   std::cout << "\nmembership\n";
+		   for(int i=0; i<npoints; i++)
+		   std::cout << membership[i] << std::endl;
+		   */
 
 		// free
-		free(centers);
+		if(centers != NULL) free(centers);
 	}
 }
 
-void run_kmeans_cpu(Kmeans &kmeans, int nclusters, int nfeatures, int npoints,
-		float *data, int *membership, float *centers, float &delta)
+void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,  
+		        float *data, int *membership, float *centers, float &delta) 
 {
 	// initialize with zeros
 	float* new_centers = (float*) calloc(nclusters * nfeatures, sizeof(float));
 	float* new_centers_members = (float*) calloc(nclusters, sizeof(float));
-
-	//int* new_membership = (int *) malloc(npoints * sizeof(int));
 
 	// update the membership by calculating the distance
 	for(int i=0; i<npoints; i++)
@@ -140,8 +284,6 @@ void run_kmeans_cpu(Kmeans &kmeans, int nclusters, int nfeatures, int npoints,
 
 	free(new_centers);
 	free(new_centers_members);
-	//free(new_membership);
 }
-
 
 #endif
