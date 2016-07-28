@@ -4,6 +4,29 @@
 #include <stdio.h>                                                              
 #include <stdlib.h>                                                             
 #include <iostream>  
+#include <time.h>                                                               
+#include <sys/time.h> 
+
+// cpu timer                                                                
+struct timeval startTime, endTime;                                          
+
+void cputic() {                                              
+	gettimeofday(&startTime, NULL);                                         
+}                                                                           
+
+void cputoc() {                                                
+	gettimeofday(&endTime, NULL);                                           
+}                                                                           
+
+void printCpuTime() {                                              
+	long seconds, useconds;                                                 
+	seconds  = endTime.tv_sec  - startTime.tv_sec;                          
+	useconds = endTime.tv_usec - startTime.tv_usec;                         
+	double mtime = useconds;                                                
+	mtime/=1000;                                                            
+	mtime+=seconds*1000;                                                    
+	printf("CPU Elapsed Time : %f ms\n", mtime);                            
+}                        
 
 class PARAMS {
 public:

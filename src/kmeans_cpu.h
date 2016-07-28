@@ -11,6 +11,14 @@
 #define FLT_MAX 3.40282347e+38
 #endif
 
+#ifndef INT_SIZE 
+#define INT_SIZE sizeof(int) 
+#endif
+
+#ifndef FLT_SIZE 
+#define FLT_SIZE sizeof(float) 
+#endif
+
 //----------------------------------------------------------------------------//
 // CPU Kmeans Class 
 //----------------------------------------------------------------------------//
@@ -134,9 +142,12 @@ void KmeansCpu::ReadDataFromFile()
 	fclose(infile);
 	//printf("=> %d\n", sample_num);
 
-
-	membership = (int*) malloc(npoints*sizeof(int));
-	for (int i=0; i < npoints; i++) membership[i] = -1;
+	// use -1 as default 
+	membership = (int*) malloc(npoints * INT_SIZE);
+	//memset(membership, -1, npoints * INT_SIZE);
+	//for (int i=0; i < npoints; i++) { 
+	//	std::cout << membership[i] << std::endl;
+	//}
 
 	printf("\nNumber of objects: %d\n"
 			"Number of features: %d\n", npoints, nfeatures);	
@@ -180,6 +191,8 @@ void run_cpu(KmeansCpu &kmeans)
 		int loop = 0;
 		float *centers= (float*) malloc(nclusters*nfeatures*sizeof(float)); 
 
+		memset(membership, -1, npoints * INT_SIZE);
+
 		// pick the first nclusters samples as the initial clusters 
 		for(int i=0; i<nclusters; i++) {
 			for(int j=0; j<nfeatures; j++) {
@@ -189,13 +202,13 @@ void run_cpu(KmeansCpu &kmeans)
 
 		// reset membership if needed
 		/*
-		   for(int i=0; i<nclusters; i++) {
-		   for(int j=0; j<nfeatures; j++) {
-		   std::cout << centers[i * nfeatures + j] << "\t";
-		   }
-		   std::cout << std::endl;
-		   }
-		   */
+		for(int i=0; i<nclusters; i++) {
+			for(int j=0; j<nfeatures; j++) {
+				std::cout << centers[i * nfeatures + j] << "\t";
+			}
+			std::cout << std::endl;
+		}
+		*/
 
 		do {
 			delta = 0.f;
@@ -256,17 +269,16 @@ void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,
 
 		// update changed membership 
 		if(membership[i] != id) {
-			delta += 1.f;
+			delta += 1.f; // atomic
 			membership[i] = id;
 		}
 
 		// update membership   
-		//new_membership[i] = id;
-		// count the cluster members
-		new_centers_members[id] += 1.f;
+		new_centers_members[id] += 1.f; // atomic
 		//std::cout << id << std::endl;
 
 		// accumulate sum for each center for each feature dim
+		// hist on the center sum
 		for (int k=0; k<nfeatures; k++){
 			new_centers[id * nfeatures + k] += data[i * nfeatures + k]; 
 		}

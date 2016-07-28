@@ -38,9 +38,13 @@ int main(int argc, char **argv)
 	kmeans_cpu.isOutput      = params.isOutput;
 
 	kmeans_cpu.ReadDataFromFile();
-	kmeans_cpu.print_param();
 
+	// kmeans_cpu.print_param();
+
+	cputic();
 	run_cpu(kmeans_cpu);
+	cputoc();
+	printCpuTime();
 
 
 
