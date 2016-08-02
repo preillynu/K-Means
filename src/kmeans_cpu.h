@@ -154,14 +154,16 @@ void KmeansCpu::ReadDataFromFile()
 
 
 //----------------------------------------------------------------------------//
-// Functions
+// Functions Declaration
 //----------------------------------------------------------------------------//
 void run_cpu(KmeansCpu &kmeans);
 void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,  
 		        float *data, int *membership, float *centers, float &delta); 
 
 
-
+//----------------------------------------------------------------------------//
+// run_cpu function 
+//----------------------------------------------------------------------------//
 void run_cpu(KmeansCpu &kmeans)
 {
 	int min_nclusters = kmeans.min_nclusters;
@@ -171,8 +173,8 @@ void run_cpu(KmeansCpu &kmeans)
 	int nfeatures     = kmeans.nfeatures;
 	float threshold   = kmeans.threshold;
 
-	float *data     = kmeans.data;
-	int *membership = kmeans.membership;
+	float *data       = kmeans.data;
+	int *membership   = kmeans.membership;
 
 
 	// search the best clusters for the input data
@@ -185,32 +187,28 @@ void run_cpu(KmeansCpu &kmeans)
 			exit(1);
 		}
 
-		float delta;
-		int loop = 0;
+		//--------------------------------------------------------------------//
+		// for different number of clusters, centers need to be allocated
+		// the membership is intialized with -1
+		//--------------------------------------------------------------------//
 		float *centers= (float*) malloc(nclusters*nfeatures*sizeof(float)); 
-
 		memset(membership, -1, npoints * INT_SIZE);
 
-		// pick the first nclusters samples as the initial clusters 
+		//--------------------------------------------------------------------//
+		// pick the first [nclusters] samples as the initial clusters 
+		//--------------------------------------------------------------------//
 		for(int i=0; i<nclusters; i++) {
 			for(int j=0; j<nfeatures; j++) {
 				centers[i * nfeatures + j] = data[i * nfeatures + j]; 
 			}
 		}
 
-		// reset membership if needed
-		/*
-		for(int i=0; i<nclusters; i++) {
-			for(int j=0; j<nfeatures; j++) {
-				std::cout << centers[i * nfeatures + j] << "\t";
-			}
-			std::cout << std::endl;
-		}
-		*/
-
+		float delta;
+		int loop = 0;
 		do {
 			delta = 0.f;
 			run_kmeans_cpu(nclusters, nfeatures, npoints, data, membership, centers, delta);
+			std::cout << " loop : " << loop << std::endl;
 		} while((delta>threshold) && (++loop < nloops));
 
 
@@ -228,7 +226,9 @@ void run_cpu(KmeansCpu &kmeans)
 		   std::cout << membership[i] << std::endl;
 		   */
 
-		// free
+		//--------------------------------------------------------------------//
+		// release resources 
+		//--------------------------------------------------------------------//
 		if(centers != NULL) free(centers);
 	}
 }
