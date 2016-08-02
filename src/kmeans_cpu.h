@@ -74,19 +74,22 @@ KmeansCpu::~KmeansCpu() {
 
 void KmeansCpu::print_param() const
 {
+	std::cout << "----------------------\n"
+		         "Kmeans Configurations:\n"
+				 "----------------------\n";
+
+	std::cout << "filename : "      << filename << std::endl;
 	std::cout << "threshold : "     << threshold << std::endl;
 	std::cout << "max_ncluster : "  << max_nclusters << std::endl;
 	std::cout << "min_nclusters : " << min_nclusters << std::endl;
 	std::cout << "best_nclusters : " << best_nclusters << std::endl;
-
 	std::cout << "nfeatures : " << nfeatures << std::endl;
 	std::cout << "npoints : " << npoints << std::endl;
 	std::cout << "nloops : " << nloops << std::endl;
 	std::cout << "isRMSE : " << isRMSE << std::endl;
 	std::cout << "rmse : " << rmse << std::endl;
 	std::cout << "isOutput : " << isOutput << std::endl;
-
-	std::cout << "filename : "      << filename << std::endl;
+	std::cout << "\n";
 }
 
 //---------------------------------------------------------------------------//
@@ -106,7 +109,6 @@ void KmeansCpu::ReadDataFromFile()
 			npoints++;			
 	}
 	rewind(infile);
-	//printf("=> %d\n", npoints);
 
 	// error check for clusters
 	if (npoints < min_nclusters){
@@ -124,7 +126,6 @@ void KmeansCpu::ReadDataFromFile()
 		}
 	}        
 	rewind(infile);
-	//printf("=> %d\n", nfeatures);
 
 	data = (float*) malloc(npoints * nfeatures * sizeof(float));
 
@@ -148,9 +149,6 @@ void KmeansCpu::ReadDataFromFile()
 	//for (int i=0; i < npoints; i++) { 
 	//	std::cout << membership[i] << std::endl;
 	//}
-
-	printf("\nNumber of objects: %d\n"
-			"Number of features: %d\n", npoints, nfeatures);	
 }
 
 

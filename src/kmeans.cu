@@ -18,17 +18,17 @@
 
 int main(int argc, char **argv)
 {
-	//--------------//
+	//------------------------------------------------------------------------//
 	// read command line 
-	//--------------//
+	//------------------------------------------------------------------------//
 	PARAMS params;
 	readcmdline(argc, argv, params);
 
-	//--------------//
+	//------------------------------------------------------------------------//
 	// run cpu version
-	//--------------//
+	//------------------------------------------------------------------------//
 	KmeansCpu kmeans_cpu;
-
+	/// pass parameters
 	kmeans_cpu.filename      = params.filename;
 	kmeans_cpu.threshold     = params.threshold;
 	kmeans_cpu.max_nclusters = params.max_nclusters;
@@ -36,11 +36,11 @@ int main(int argc, char **argv)
 	kmeans_cpu.nloops        = params.nloops;
 	kmeans_cpu.isRMSE        = params.isRMSE;
 	kmeans_cpu.isOutput      = params.isOutput;
-
+	/// read input data from the specified file
 	kmeans_cpu.ReadDataFromFile();
-
-	// kmeans_cpu.print_param();
-
+	/// check the kmeans configurations
+	kmeans_cpu.print_param();
+	/// benchmark the runtime on cpu
 	cputic();
 	run_cpu(kmeans_cpu);
 	cputoc();
