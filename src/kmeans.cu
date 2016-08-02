@@ -13,8 +13,8 @@
 
 #include "io.h"
 #include "kmeans_cpu.h"
+#include "kmeans_gpu.h"
 //#include "kmeans.h"
-//#include "kmeans_gpu.h"
 
 int main(int argc, char **argv)
 {
@@ -36,34 +36,39 @@ int main(int argc, char **argv)
 	kmeans_cpu.nloops        = params.nloops;
 	kmeans_cpu.isRMSE        = params.isRMSE;
 	kmeans_cpu.isOutput      = params.isOutput;
+
 	/// read input data from the specified file
 	kmeans_cpu.ReadDataFromFile();
+
 	/// check the kmeans configurations
-	kmeans_cpu.print_param();
+	//kmeans_cpu.print_param();
+
 	/// benchmark the runtime on cpu
 	cputic();
 	run_cpu(kmeans_cpu);
 	cputoc();
 	printCpuTime();
 
+	//------------------------------------------------------------------------//
+	// run gpu version
+	//------------------------------------------------------------------------//
+	KmeansGPU kmeans_gpu;
 
-
-
-
-	//Kmeans kmeans_gpu;
-
-	/*
-	readcmdline(argc, argv, kmeans_gpu);
+	kmeans_gpu.filename      = params.filename;
+	kmeans_gpu.threshold     = params.threshold;
+	kmeans_gpu.max_nclusters = params.max_nclusters;
+	kmeans_gpu.min_nclusters = params.min_nclusters;
+	kmeans_gpu.nloops        = params.nloops;
+	kmeans_gpu.isRMSE        = params.isRMSE;
+	kmeans_gpu.isOutput      = params.isOutput;
 
 	kmeans_gpu.ReadDataFromFile();
 
+	/// 
 	kmeans_gpu.print_param();
 
-
-	//--------------//
 	// run gpu version
-	//--------------//
-	run_gpu(kmeans_gpu);
-*/
+	kmeans_gpu.runKmeans();
+
 	return 0;
 }

@@ -65,11 +65,8 @@ KmeansCpu::KmeansCpu() :
 }
 
 KmeansCpu::~KmeansCpu() {
-	if(data != NULL)
-		free(data);
-
-	if(membership != NULL)
-		free(membership);
+	if(data != NULL)       free(data);
+	if(membership != NULL) free(membership);
 }
 
 void KmeansCpu::print_param() const
@@ -77,18 +74,17 @@ void KmeansCpu::print_param() const
 	std::cout << "----------------------\n"
 		         "Kmeans Configurations:\n"
 				 "----------------------\n";
-
-	std::cout << "filename : "      << filename << std::endl;
-	std::cout << "threshold : "     << threshold << std::endl;
-	std::cout << "max_ncluster : "  << max_nclusters << std::endl;
-	std::cout << "min_nclusters : " << min_nclusters << std::endl;
+	std::cout << "filename : "       << filename << std::endl;
+	std::cout << "threshold : "      << threshold << std::endl;
+	std::cout << "max_ncluster : "   << max_nclusters << std::endl;
+	std::cout << "min_nclusters : "  << min_nclusters << std::endl;
 	std::cout << "best_nclusters : " << best_nclusters << std::endl;
-	std::cout << "nfeatures : " << nfeatures << std::endl;
-	std::cout << "npoints : " << npoints << std::endl;
-	std::cout << "nloops : " << nloops << std::endl;
-	std::cout << "isRMSE : " << isRMSE << std::endl;
-	std::cout << "rmse : " << rmse << std::endl;
-	std::cout << "isOutput : " << isOutput << std::endl;
+	std::cout << "nfeatures : "      << nfeatures << std::endl;
+	std::cout << "npoints : "        << npoints << std::endl;
+	std::cout << "nloops : "         << nloops << std::endl;
+	std::cout << "isRMSE : "         << isRMSE << std::endl;
+	std::cout << "rmse : "           << rmse << std::endl;
+	std::cout << "isOutput : "       << isOutput << std::endl;
 	std::cout << "\n";
 }
 
@@ -97,6 +93,9 @@ void KmeansCpu::print_param() const
 //---------------------------------------------------------------------------//
 void KmeansCpu::ReadDataFromFile()
 {
+	npoints   = 0;
+	nfeatures = 0;
+
 	FILE *infile;
 
 	if ((infile = fopen(filename, "r")) == NULL) {
@@ -109,7 +108,6 @@ void KmeansCpu::ReadDataFromFile()
 			npoints++;			
 	}
 	rewind(infile);
-
 	// error check for clusters
 	if (npoints < min_nclusters){
 		printf("Error: min_nclusters(%d) > npoints(%d) -- cannot proceed\n", 
@@ -127,7 +125,8 @@ void KmeansCpu::ReadDataFromFile()
 	}        
 	rewind(infile);
 
-	data = (float*) malloc(npoints * nfeatures * sizeof(float));
+	if(data != NULL)       free(data);
+	data = (float*) malloc(npoints * nfeatures * FLT_SIZE);
 
 	int sample_num = 0;
 	char *token;
@@ -208,7 +207,7 @@ void run_cpu(KmeansCpu &kmeans)
 		do {
 			delta = 0.f;
 			run_kmeans_cpu(nclusters, nfeatures, npoints, data, membership, centers, delta);
-			std::cout << " loop : " << loop << std::endl;
+			//std::cout << " loop : " << loop << std::endl;
 		} while((delta>threshold) && (++loop < nloops));
 
 
