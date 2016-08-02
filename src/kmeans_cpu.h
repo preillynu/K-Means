@@ -236,20 +236,26 @@ void run_cpu(KmeansCpu &kmeans)
 void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,  
 		        float *data, int *membership, float *centers, float &delta) 
 {
-	// initialize with zeros
+	//------------------------------------------------------------------------//
+	// new centers and membership initialize with zeros
+	//------------------------------------------------------------------------//
 	float* new_centers = (float*) calloc(nclusters * nfeatures, sizeof(float));
 	float* new_centers_members = (float*) calloc(nclusters, sizeof(float));
 
-	// update the membership by calculating the distance
 	for(int i=0; i<npoints; i++)
 	{
 		int id = -1;
 		float dist_min = FLT_MAX; 
 
-		// find the closest center
+		//--------------------------------------------------------------------//
+		// for each sample point: find the closest center
+		//--------------------------------------------------------------------//
 		for (int j = 0; j<nclusters; j++)
 		{
 			float dist_cluster = 0.f;
+			//----------------------------------------------------------------//	
+			// accumulate the difference for each feature dim
+			//----------------------------------------------------------------//	
 			for (int k=0; k<nfeatures; k++)
 			{
 				float diff = data[i * nfeatures + k] - centers[j * nfeatures + k];		
@@ -258,6 +264,9 @@ void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,
 
 			//dist_cluster = sqrt(dist_cluster);
 			
+			//----------------------------------------------------------------//	
+			// update the id for the closest centers 
+			//----------------------------------------------------------------//	
 			if(dist_cluster < dist_min) {
 				dist_min = dist_cluster;
 				id = j;
@@ -265,18 +274,25 @@ void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,
 		}
 		//std::cout << id << std::endl;
 
-		// update changed membership 
+		//--------------------------------------------------------------------//	
+		// compare with previous membership 
+		// if changed, record the status to delta and update its membership 
+		//--------------------------------------------------------------------//	
 		if(membership[i] != id) {
 			delta += 1.f; // atomic
 			membership[i] = id;
 		}
 
+		//--------------------------------------------------------------------//	
 		// update membership   
+		//--------------------------------------------------------------------//	
 		new_centers_members[id] += 1.f; // atomic
 		//std::cout << id << std::endl;
 
+		//--------------------------------------------------------------------//	
 		// accumulate sum for each center for each feature dim
 		// hist on the center sum
+		//--------------------------------------------------------------------//	
 		for (int k=0; k<nfeatures; k++){
 			new_centers[id * nfeatures + k] += data[i * nfeatures + k]; 
 		}
