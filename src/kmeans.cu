@@ -14,10 +14,14 @@
 #include "io.h"
 #include "kmeans_cpu.h"
 #include "kmeans_gpu.h"
-//#include "kmeans.h"
 
 int main(int argc, char **argv)
 {
+	int devid=0;
+	cudaDeviceProp prop;
+	checkCudaErrors( cudaGetDeviceProperties(&prop, devid) );
+	printf("Device: %s\n", prop.name);
+
 	//------------------------------------------------------------------------//
 	// read command line 
 	//------------------------------------------------------------------------//
