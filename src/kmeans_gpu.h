@@ -28,13 +28,14 @@ inline int BLK(int number, int blksize)
 } 
 
 __global__ void kernel_dist(const float* __restrict__ data,
-		const float* __restrict__ centers,
+		const float* __restrict__ clusters,
 		int *membership,
 		const int npoints,
 		const int nfeatures,
 		const int nclusters,
-		float* delta);
-
+		float* delta,
+		float* new_clusters,
+		float* new_clusters_members);
 
 //----------------------------------------------------------------------------//
 // GPU Kmeans Class
@@ -46,7 +47,7 @@ public:
 
 	void print_param() const;
 	void ReadDataFromFile();
-	void runKmeans();
+	void run();
 	void runKmeans_gpu(int nclusters);
 
 	char 			*filename;
@@ -61,13 +62,20 @@ public:
 	float 			rmse;
 	int 			isOutput;
 	char 			line[MAX_LINE_LEN];
+
 	// using unified memory
 	float 			*data;
 	int 			*membership;
 	float           *delta;
-	float           *centers;
+	float           *clusters;
+	float           *new_clusters;
+	float           *new_clusters_members;
+
 	dim3            blkDim;
 	dim3            grdDim;
+
+	cudaEvent_t startEvent, stopEvent;
+	float gpuTime;
 };
 
 KmeansGPU::KmeansGPU() : 
@@ -86,14 +94,22 @@ KmeansGPU::KmeansGPU() :
 	data       = NULL;
 	membership = NULL;
 	delta      = NULL;
-	centers    = NULL;
+	clusters    = NULL;
+	new_clusters    = NULL;
+	new_clusters_members = NULL;
+
+	// create timer
+	checkCudaErrors( cudaEventCreate(&startEvent) );                            
+	checkCudaErrors( cudaEventCreate(&stopEvent) );
 }
 
 KmeansGPU::~KmeansGPU() {
-	if(data != NULL)          cudaFreeHost(data);
-	if(membership != NULL)    cudaFreeHost(membership);
-	if(delta != NULL)         cudaFreeHost(delta);
-	if(centers != NULL)       cudaFreeHost(centers);
+	if(data       != NULL)                 cudaFreeHost(data);
+	if(membership != NULL)                 cudaFreeHost(membership);
+	if(delta      != NULL)                 cudaFreeHost(delta);
+	if(clusters   != NULL)                 cudaFreeHost(clusters);
+	if(new_clusters != NULL)               cudaFreeHost(new_clusters);
+	if(new_clusters_members != NULL)       cudaFreeHost(new_clusters_members);
 }
 
 void KmeansGPU::print_param() const
@@ -169,8 +185,6 @@ void KmeansGPU::ReadDataFromFile()
 	//printf("=> %d\n", sample_num);
 
 	cudaMallocManaged((void**)&membership, npoints * INT_SIZE);	
-	//for (int i=0; i < npoints; i++) membership[i] = -1;
-
 	cudaMallocManaged((void**)&delta, FLT_SIZE);	
 }
 
@@ -178,8 +192,10 @@ void KmeansGPU::ReadDataFromFile()
 //----------------------------------------------------------------------------//
 // Run Kmeans
 //----------------------------------------------------------------------------//
-void KmeansGPU::runKmeans()                                                
+void KmeansGPU::run()                                                
 {
+	cudaEventRecord(startEvent);
+
 	// search the best clusters for the input data                              
 	for(int nclusters = min_nclusters; nclusters <= max_nclusters; nclusters++) 
 	{                                                                           
@@ -189,12 +205,14 @@ void KmeansGPU::runKmeans()
 					nclusters, npoints);                                        
 			exit(1);                                                            
 		}                                                                       
-
 		//--------------------------------------------------------------------//
-		// for different number of clusters, centers need to be allocated       
+		// for different number of clusters, clusters need to be allocated       
 		// the membership is intialized with -1                                 
 		//--------------------------------------------------------------------//
-		cudaMallocManaged((void**)&centers, nclusters * nfeatures * FLT_SIZE);
+		cudaMallocManaged((void**)&clusters,             nclusters * nfeatures * FLT_SIZE);
+		cudaMallocManaged((void**)&new_clusters,         nclusters * nfeatures * FLT_SIZE);
+		cudaMallocManaged((void**)&new_clusters_members, nclusters * FLT_SIZE);
+
 		cudaMemset(membership, -1, npoints * INT_SIZE);
 
 		//--------------------------------------------------------------------//
@@ -202,31 +220,29 @@ void KmeansGPU::runKmeans()
 		//--------------------------------------------------------------------//
 		for(int i=0; i<nclusters; i++) {                                        
 			for(int j=0; j<nfeatures; j++) {                                    
-				centers[i * nfeatures + j] = data[i * nfeatures + j];           
+				clusters[i * nfeatures + j] = data[i * nfeatures + j];           
 			}                                                                   
 		}                                                                       
 
-		
-		// dev sync
-		delta[0] = 0.f;
-		runKmeans_gpu(nclusters);
-
-		/*
-		float delta;                                                            
-		int loop = 0;                                                           
-		do {                                                                    
-			delta = 0.f;                                                        
-			run_kmeans_cpu(nclusters, nfeatures, npoints, data, membership, centers, delta);
-			//std::cout << " loop : " << loop << std::endl;                     
-		} while((delta>threshold) && (++loop < nloops));                        
-		*/
-
+		int loop = 0;
+		do {
+			delta[0] = 0.f;
+			runKmeans_gpu(nclusters);
+			//printf("loop: %d \t delta : %f\n", loop, delta[0]);
+		} while((delta[0] > threshold) && (++loop < nloops));
 
 		//--------------------------------------------------------------------//
 		// release resources                                                    
 		//--------------------------------------------------------------------//
-		if(centers != NULL) cudaFreeHost(centers);                                      
-	}                                                        
+		if(clusters != NULL) cudaFreeHost(clusters);                                      
+		if(new_clusters != NULL) cudaFreeHost(new_clusters);
+		if(new_clusters_members != NULL) cudaFreeHost(new_clusters_members);
+	}
+
+	cudaEventRecord(stopEvent);
+	cudaEventSynchronize(stopEvent);
+	cudaEventElapsedTime(&gpuTime, startEvent, stopEvent);
+	printf("GPU Elapsed Time : %f ms\n", gpuTime);
 }
 
 //----------------------------------------------------------------------------//
@@ -234,123 +250,126 @@ void KmeansGPU::runKmeans()
 //----------------------------------------------------------------------------//
 void KmeansGPU::runKmeans_gpu(int nclusters)
 {
-	//------------------------------------------------------------------------//
-	// new centers and membership initialize with zeros                         
-	//------------------------------------------------------------------------//
-	//float* new_centers = (float*) calloc(nclusters * nfeatures, sizeof(float)); 
-	//float* new_centers_members = (float*) calloc(nclusters, sizeof(float));  
+	// start from zero for each iteration
+	cudaMemset(new_clusters,         0, nclusters * nfeatures * FLT_SIZE);
+	cudaMemset(new_clusters_members, 0, nclusters * FLT_SIZE);
 
-	blkDim = dim3(32, 8, 1);
-	grdDim = dim3(BLK(npoints,32), BLK(nfeatures,8), 1);
-	// store intermediate data in shared memory
-	size_t sharedmem_size = blkDim.x * blkDim.y * FLT_SIZE;
-	kernel_dist <<< grdDim, blkDim, sharedmem_size >>> (data, 
-			centers, 
-			membership, 
-			npoints, nfeatures, nclusters, delta);
-
-
+	// each point working on computing the closest clusters
 	blkDim = dim3(256, 1, 1);
-	grdDim = dim3(BLK(npoints,256), 1, 1);
+	grdDim = dim3(BLK(npoints, 256), 1, 1);
 
+	size_t sharedmem_size = nclusters * (nfeatures + 1) * FLT_SIZE;
+	kernel_dist <<< grdDim, blkDim, sharedmem_size >>> (data, 
+			clusters, 
+			membership, 
+			npoints, 
+			nfeatures, 
+			nclusters, 
+			delta,
+			new_clusters,
+			new_clusters_members);
+
+	cudaDeviceSynchronize();
+
+	for(int i=0; i<nclusters; i++) {                                        
+		for(int j=0; j<nfeatures; j++) {                                    
+			clusters[i * nfeatures + j] = new_clusters[i * nfeatures + j] / new_clusters_members[i];           
+			//printf("%f ", clusters[i * nfeatures + j]);
+		}                                                                   
+		//printf("\n");
+	}                                                                       
 }
-
-__global__ void kernel_compute_centers(const float* __restrict__ data,
-		const float* __restrict__ membership,
-		npoints, nfeatures, 
-		float *centers)
-{
-	extern __shared__ float sdata[]; // (ncluster x nfeatures + 1)
-
-	float *member_sum = &sdata[0];
-
-	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
-	uint lx = threadIdx.x;
-
-	if(gx < npoints)
-	{
-		int id = membership[gx];
-
-		atomicAdd(&center_member_sum[id], 1.f);
-
-		for (int k=0; k<nfeatures; k++){                                        
-			new_centers[id * nfeatures + k] += data[i * nfeatures + k];         
-		}    
-	
-	}
-
-}
-
 
 
 // notes: assume nfeatures is smaller that the block size
 // membership array can be avoided
 __global__ void kernel_dist(const float* __restrict__ data,
-		const float* __restrict__ centers,
+		const float* __restrict__ clusters,
 		int *membership,
 		const int npoints,
 		const int nfeatures,
 		const int nclusters,
-		float* delta)
+		float* delta,
+		float *new_clusters,
+		float *new_clusters_members)
 {
-	extern __shared__ float sdata[]; 
+	extern __shared__ float local_cluster[]; 
 
 	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
-	uint gy = threadIdx.y + __umul24(blockDim.y, blockIdx.y);
 	uint lx = threadIdx.x;
-	uint ly = threadIdx.y;
 
 	float dist_min = FLT_MAX;
-	int current_id;
+	int prev_id;
+	int curr_id;
+	size_t baseInd       = lx * (nfeatures + 1);
+	size_t data_base_ind = gx * nfeatures;
+	size_t cluster_base_ind;
 	
-	// load the membership
-	if(gx < npoints && gy == 0) {
-		current_id = membership[gx];
+	// initialize shared memory
+	if(lx < nclusters) {
+		for(int f=0; f<nfeatures+1; f++)
+			local_cluster[baseInd + f] = 0.f;
 	}
 
-	for(int k=0; k<nclusters; k++)
-	{
-		// compute partial distance to shared memory
-		if(gx < npoints && gy < nfeatures) {
-			float diff = data[gx * nfeatures + gy] - centers[k * nfeatures + gy];
-			sdata[lx * blockDim.y + ly] = diff * diff;
-		} else {
-			sdata[lx * blockDim.y + ly] = 0.f;	
-		}
+	__syncthreads();
 
-		__syncthreads();
 
-		// activate the 1st column threads
-		// notes: parallel reduction if possible
-		if(gx < npoints && gy == 0)
+	if(gx < npoints) {
+		// load the membership
+		curr_id = prev_id = membership[gx];
+
+		// go through each cluster
+		for(int k=0; k<nclusters; k++)
 		{
 			float dist_cluster = 0.f;
-			int id;
-			for(int i=0; i<nfeatures; i++) {
-				dist_cluster += sdata[lx * blockDim.y + i]; 	
+			size_t center_base_ind = k * nfeatures;
+			for(int f=0; f<nfeatures; f++)
+			{
+				float diff = data[data_base_ind + f] - clusters[center_base_ind + f];
+				dist_cluster += diff * diff;
 			}
 
-			// update the id for the closest centers                            
+			// update the id for the closest center
 			if(dist_cluster < dist_min) {                                       
 				dist_min = dist_cluster;                                        
-				id = k;                                                         
+				curr_id = k;                                                         
 			}  
+		}
 
-			if(current_id != id) {
-				// atomic add to the global memory	
-				atomicAdd(&delta[0], 1.f);
-				//membership[gx] = id;
-				current_id = id;
-			}
+		// update membership
+		if(prev_id != curr_id) {
+			membership[gx] = curr_id; 
+			atomicAdd(&delta[0], 1.f);
 		}
 	}
 
-	// update membership at last
-	if(gx < npoints && gy == 0) {
-		membership[gx] = current_id;
+	// accumulate the data value across each dim locally 
+	// accumulate the membership for each cluster locally
+	if(gx < npoints)
+	{
+		cluster_base_ind = curr_id * (nfeatures + 1);
+		for(int f=0; f<nfeatures; f++)
+			atomicAdd(&local_cluster[cluster_base_ind + f], data[data_base_ind + f]);
+
+		// member counts
+		atomicAdd(&local_cluster[cluster_base_ind + nfeatures], 1.f);
+	}
+
+	__syncthreads();
+
+	// update the global counts
+	// new clusters, new cluster counts
+	if(lx < nclusters)
+	{
+		// accumulate data globally
+		size_t out_ind = lx * nfeatures;
+		for(int f=0; f<nfeatures; f++)
+			atomicAdd(&new_clusters[out_ind + f], local_cluster[baseInd + f]);
+
+		// accumulate counts globally
+		atomicAdd(&new_clusters_members[lx], local_cluster[baseInd + nfeatures]);
 	}
 }
-
 
 
 

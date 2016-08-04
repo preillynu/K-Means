@@ -207,7 +207,7 @@ void run_cpu(KmeansCpu &kmeans)
 		do {
 			delta = 0.f;
 			run_kmeans_cpu(nclusters, nfeatures, npoints, data, membership, centers, delta);
-			//std::cout << " loop : " << loop << std::endl;
+			//printf("loop: %d \t delta : %f\n", loop, delta);
 		} while((delta>threshold) && (++loop < nloops));
 
 

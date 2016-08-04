@@ -65,10 +65,10 @@ int main(int argc, char **argv)
 	kmeans_gpu.ReadDataFromFile();
 
 	/// 
-	kmeans_gpu.print_param();
+	// kmeans_gpu.print_param();
 
 	// run gpu version
-	kmeans_gpu.runKmeans();
+	kmeans_gpu.run();
 
 	return 0;
 }
