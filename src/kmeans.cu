@@ -72,6 +72,8 @@ int main(int argc, char **argv)
 	// kmeans_gpu.print_param();
 
 	// run gpu version
+	//int max_depth = 24;
+	//cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, max_depth);
 	kmeans_gpu.run();
 
 	return 0;

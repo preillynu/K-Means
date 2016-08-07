@@ -302,10 +302,13 @@ void run_kmeans_cpu(int nclusters, int nfeatures, int npoints,
 	{
 		for (int k=0; k<nfeatures; k++)
 		{
+			//printf("%f ", centers[j * nfeatures + k]); 
 			centers[j * nfeatures + k] = 
 				new_centers[j * nfeatures + k] / new_centers_members[j];  
 		}
+		//printf("\n");
 	}
+	//printf("\n\n");
 
 	free(new_centers);
 	free(new_centers_members);

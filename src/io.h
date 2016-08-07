@@ -35,7 +35,8 @@ public:
 		threshold = 0.001f;
 		max_nclusters = 5;
 		min_nclusters = 5;
-		nloops = 1000;
+		//nloops = 1000;
+		nloops = 10;
 		isRMSE = 0;
 		isOutput = 0;
 	}

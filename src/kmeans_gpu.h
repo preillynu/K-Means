@@ -7,6 +7,7 @@
 
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
+#include <helper_string.h>
 
 #define MAX_LINE_LEN 4096                                                       
                                                                                 
@@ -22,20 +23,39 @@
 #define FLT_SIZE sizeof(float)                                                  
 #endif 
 
-inline int BLK(int number, int blksize)                                         
+static __device__ __forceinline__ int BLK(int number, int blksize)                                         
 {                                                                               
 	return (number + blksize - 1) / blksize;                                    
 } 
 
+// gpu kernel to initialize data
+__global__ void kernel_memset (float *array, 
+	const float value, 
+	const int N);
+
 __global__ void kernel_dist(const float* __restrict__ data,
 		const float* __restrict__ clusters,
 		int *membership,
+		float *delta,
 		const int npoints,
 		const int nfeatures,
 		const int nclusters,
-		float* delta,
 		float* new_clusters,
 		float* new_clusters_members);
+
+
+__global__ void kernel_parent_kmeans(float* data,
+		float *clusters,
+		int  *membership,
+		float *delta,
+		const int npoints,
+		const int nfeatures,
+		const int nclusters,
+		const float threshold,
+		const int nloops,
+		float *new_clusters,
+		float *new_clusters_members);
+
 
 //----------------------------------------------------------------------------//
 // GPU Kmeans Class
@@ -224,12 +244,28 @@ void KmeansGPU::run()
 			}                                                                   
 		}                                                                       
 
-		int loop = 0;
-		do {
-			delta[0] = 0.f;
-			runKmeans_gpu(nclusters);
-			//printf("loop: %d \t delta : %f\n", loop, delta[0]);
-		} while((delta[0] > threshold) && (++loop < nloops));
+		// run kmeans on gpu using DP
+		kernel_parent_kmeans <<< 1 , 1 >>> (data, 
+				clusters, 
+				membership, 
+				delta,
+				npoints, 
+				nfeatures,
+				nclusters,
+				threshold,
+				nloops,
+				new_clusters,
+				new_clusters_members
+				);
+
+
+
+	//	int loop = 0;
+	//	do {
+	//		delta[0] = 0.f;
+	//		runKmeans_gpu(nclusters);
+	//		//printf("loop: %d \t delta : %f\n", loop, delta[0]);
+	//	} while((delta[0] > threshold) && (++loop < nloops));
 
 		//--------------------------------------------------------------------//
 		// release resources                                                    
@@ -248,6 +284,7 @@ void KmeansGPU::run()
 //----------------------------------------------------------------------------//
 // Run Kmeans : GPU Kernels
 //----------------------------------------------------------------------------//
+/*
 void KmeansGPU::runKmeans_gpu(int nclusters)
 {
 	// start from zero for each iteration
@@ -279,17 +316,83 @@ void KmeansGPU::runKmeans_gpu(int nclusters)
 		//printf("\n");
 	}                                                                       
 }
+*/
 
+
+
+__global__ void kernel_parent_kmeans(float* data,
+		float *clusters,
+		int  *membership,
+		float *delta,
+		const int npoints,
+		const int nfeatures,
+		const int nclusters,
+		const float threshold,
+		const int nloops,
+		float *new_clusters,
+		float *new_clusters_members)
+{
+	for(int loop=0; loop<nloops; loop++)
+	{
+		//printf("loop id : %d\n", loop);
+
+		delta[0] = 0.f;		
+		
+		kernel_memset <<< 1, nclusters * nfeatures >>> (new_clusters, 0, nclusters * nfeatures);
+		kernel_memset <<< 1, nclusters             >>> (new_clusters_members, 0, nclusters);
+
+		// each point working on computing the closest clusters
+		dim3 blkDim = dim3(256, 1, 1);
+		dim3 grdDim = dim3(BLK(npoints, 256), 1, 1);
+
+		size_t sharedmem_size = nclusters * (nfeatures + 1) * FLT_SIZE;
+		kernel_dist <<< grdDim, blkDim, sharedmem_size >>> (data, 
+				clusters, 
+				membership, 
+				delta,
+				npoints, 
+				nfeatures, 
+				nclusters, 
+				new_clusters,
+				new_clusters_members);
+
+		for(int i=0; i<nclusters; i++) {                                        
+			for(int j=0; j<nfeatures; j++) {                                    
+				//printf("%f ", clusters[i * nfeatures + j]);
+				clusters[i * nfeatures + j] = new_clusters[i * nfeatures + j] / new_clusters_members[i];           
+			}                                                                   
+			//printf("\n");
+		}                                                                       
+		//printf("\n\n");
+
+		//printf("delta : %f\n", delta[0]);
+
+		//cudaDeviceSynchronize();	
+
+		// terminate condition
+		if(delta[0] < threshold)
+			break;
+	}
+}
+
+__global__ void kernel_memset (float *array, 
+	const float value, 
+	const int N)
+{
+	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
+	if(gx < N)
+		array[gx] = value;
+}
 
 // notes: assume nfeatures is smaller that the block size
 // membership array can be avoided
 __global__ void kernel_dist(const float* __restrict__ data,
 		const float* __restrict__ clusters,
 		int *membership,
+		float *delta,
 		const int npoints,
 		const int nfeatures,
 		const int nclusters,
-		float* delta,
 		float *new_clusters,
 		float *new_clusters_members)
 {
@@ -370,7 +473,5 @@ __global__ void kernel_dist(const float* __restrict__ data,
 		atomicAdd(&new_clusters_members[lx], local_cluster[baseInd + nfeatures]);
 	}
 }
-
-
 
 #endif
