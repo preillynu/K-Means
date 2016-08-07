@@ -43,6 +43,11 @@ __global__ void kernel_dist(const float* __restrict__ data,
 		float* new_clusters,
 		float* new_clusters_members);
 
+__global__ void kernel_update_clusters (float *clusters, 
+		const float* __restrict__ new_clusters,
+		const float* __restrict__ new_clusters_members,
+		const int nclusters,
+		const int nfeatures);
 
 __global__ void kernel_parent_kmeans(float* data,
 		float *clusters,
@@ -356,18 +361,24 @@ __global__ void kernel_parent_kmeans(float* data,
 				new_clusters,
 				new_clusters_members);
 
+/*
 		for(int i=0; i<nclusters; i++) {                                        
 			for(int j=0; j<nfeatures; j++) {                                    
-				//printf("%f ", clusters[i * nfeatures + j]);
-				clusters[i * nfeatures + j] = new_clusters[i * nfeatures + j] / new_clusters_members[i];           
+				printf("%f ", clusters[i * nfeatures + j]);
 			}                                                                   
-			//printf("\n");
+			printf("\n");
 		}                                                                       
-		//printf("\n\n");
+		printf("\n\n");
+		*/
 
-		//printf("delta : %f\n", delta[0]);
+		blkDim = dim3(16, 16, 1);
+		grdDim = dim3(BLK(nclusters, 16), BLK(nfeatures,16), 1);
+		kernel_update_clusters <<< grdDim, blkDim >>> (clusters, 
+																				new_clusters, 
+																				new_clusters_members,
+																				nclusters,
+																				nfeatures);
 
-		//cudaDeviceSynchronize();	
 
 		// terminate condition
 		if(delta[0] < threshold)
@@ -471,6 +482,23 @@ __global__ void kernel_dist(const float* __restrict__ data,
 
 		// accumulate counts globally
 		atomicAdd(&new_clusters_members[lx], local_cluster[baseInd + nfeatures]);
+	}
+}
+
+
+__global__ void kernel_update_clusters (float *clusters, 
+		const float* __restrict__ new_clusters,
+		const float* __restrict__ new_clusters_members,
+		const int nclusters,
+		const int nfeatures)
+{	
+	uint gx = threadIdx.x + __umul24(blockIdx.x, blockDim.x);
+	uint gy = threadIdx.y + __umul24(blockIdx.y, blockDim.y);
+
+	if(gx < nclusters && gy < nfeatures)
+	{
+		size_t outInd = gx * nfeatures + gy;
+		clusters[outInd] = new_clusters[outInd] / new_clusters_members[gx];
 	}
 }
 
