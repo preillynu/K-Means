@@ -1,0 +1,133 @@
+==21767== NVPROF is profiling process 21767, command: ./kmeans -i ../data/data_3d_ind.txt
+==21767== Warning: Some kernel(s) will be replayed on device 0 in order to collect all events/metrics.
+==21767== Profiling application: ./kmeans -i ../data/data_3d_ind.txt
+Device: Tesla K40c
+CPU Elapsed Time : 0.919000 ms
+GPU Elapsed Time : 3816.992920 ms
+==21767== Profiling result:
+==21767== Metric result:
+"Device","Kernel","Invocations","Metric Name","Metric Description","Min","Max","Avg"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l1_cache_global_hit_rate","L1 Global Hit Rate",65.625000%,65.625000%,65.625000%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l1_cache_local_hit_rate","L1 Local Hit Rate",90.668524%,90.668524%,90.668524%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sm_efficiency","Multiprocessor Activity",17.367774%,17.367774%,17.367774%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ipc","Executed IPC",0.188696,0.188696,0.188696
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"achieved_occupancy","Achieved Occupancy",0.063491,0.063491,0.063491
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gld_requested_throughput","Requested Global Load Throughput",45.819434MB/s,45.819434MB/s,45.819434MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gst_requested_throughput","Requested Global Store Throughput",29.844426MB/s,29.844426MB/s,29.844426MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sm_efficiency_instance","Multiprocessor Activity",17.367774%,17.367774%,17.367774%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ipc_instance","Executed IPC",0.188696,0.188696,0.188696
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_replay_overhead","Instruction Replay Overhead",0.077760,0.077760,0.077760
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_replay_overhead","Shared Memory Replay Overhead",0.000000,0.000000,0.000000
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"global_replay_overhead","Global Memory Replay Overhead",0.000125,0.000125,0.000125
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"global_cache_replay_overhead","Global Memory Cache Replay Overhead",0.000170,0.000170,0.000170
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"tex_cache_hit_rate","Texture Cache Hit Rate",96.696673%,96.696673%,96.696673%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"tex_cache_throughput","Texture Cache Throughput",3.112243GB/s,3.112243GB/s,3.112243GB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"dram_read_throughput","Device Memory Read Throughput",15.563044MB/s,15.563044MB/s,15.563044MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"dram_write_throughput","Device Memory Write Throughput",165.883746MB/s,165.883746MB/s,165.883746MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gst_throughput","Global Store Throughput",112.053921MB/s,112.053921MB/s,112.053921MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gld_throughput","Global Load Throughput",231.065439MB/s,231.065439MB/s,231.065439MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_replay_overhead","Local Memory Cache Replay Overhead",0.001030,0.001030,0.001030
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_efficiency","Shared Memory Efficiency",7.446913%,7.446913%,7.446913%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gld_efficiency","Global Memory Load Efficiency",19.829635%,19.829635%,19.829635%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gst_efficiency","Global Memory Store Efficiency",26.633987%,26.633987%,26.633987%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_l1_read_hit_rate","L2 Hit Rate (L1 Reads)",100.000000%,100.000000%,100.000000%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_texture_read_hit_rate","L2 Hit Rate (Texture Reads)",99.289941%,99.289941%,99.289941%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_l1_read_throughput","L2 Throughput (L1 Reads)",146.109524MB/s,146.109524MB/s,146.109524MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_texture_read_throughput","L2 Throughput (Texture Reads)",154.714973MB/s,154.714973MB/s,154.714973MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"warp_execution_efficiency","Warp Execution Efficiency",58.395557%,58.395557%,58.395557%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"nc_gld_requested_throughput","Requested Non-Coherent Global Load Throughput",755.952006MB/s,755.952006MB/s,755.952006MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"issued_ipc","Issued IPC",0.202386,0.202386,0.202386
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_per_warp","Instructions per warp",701.311828,701.311828,701.311828
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"issue_slot_utilization","Issue Slot Utilization",4.362613%,4.362613%,4.362613%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_load_transactions_per_request","Local Memory Load Transactions Per Request",1.000000,1.000000,1.000000
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_store_transactions_per_request","Local Memory Store Transactions Per Request",1.002415,1.002415,1.002415
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_load_transactions_per_request","Shared Memory Load Transactions Per Request",181.906250,181.906250,181.906250
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_store_transactions_per_request","Shared Memory Store Transactions Per Request",181.906250,181.906250,181.906250
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gld_transactions_per_request","Global Load Transactions Per Request",0.949495,0.949495,0.949495
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gst_transactions_per_request","Global Store Transactions Per Request",1.460526,1.460526,1.460526
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_load_transactions","Local Load Transactions",347,347,347
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_store_transactions","Local Store Transactions",403,403,403
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_load_transactions","Shared Load Transactions",5508,5508,5508
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_store_transactions","Shared Store Transactions",5647,5647,5647
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gld_transactions","Global Load Transactions",282,282,282
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"gst_transactions","Global Store Transactions",555,555,555
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sysmem_read_transactions","System Memory Read Transactions",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sysmem_write_transactions","System Memory Write Transactions",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"tex_cache_transactions","Texture Cache Transactions",16998,16998,16998
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"dram_read_transactions","Device Memory Read Transactions",85,85,85
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"dram_write_transactions","Device Memory Write Transactions",906,906,906
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_read_transactions","L2 Read Transactions",5746,5746,5746
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_write_transactions","L2 Write Transactions",2293,2293,2293
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_load_throughput","Local Memory Load Throughput",420.385299MB/s,420.385299MB/s,420.385299MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"local_store_throughput","Local Memory Store Throughput",254.501553MB/s,254.501553MB/s,254.501553MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_load_throughput","Shared Memory Load Throughput",8.067882GB/s,8.067882GB/s,8.067882GB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"shared_store_throughput","Shared Memory Store Throughput",8.271484GB/s,8.271484GB/s,8.271484GB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_read_throughput","L2 Throughput (Reads)",1.052062GB/s,1.052062GB/s,1.052062GB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_write_throughput","L2 Throughput (Writes)",419.836015MB/s,419.836015MB/s,419.836015MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sysmem_read_throughput","System Memory Read Throughput",0.000000B/s,0.000000B/s,0.000000B/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sysmem_write_throughput","System Memory Write Throughput",0.000000B/s,0.000000B/s,0.000000B/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"warp_nonpred_execution_efficiency","Warp Non-Predicated Execution Efficiency",47.958387%,47.958387%,47.958387%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"cf_issued","Issued Control-Flow Instructions",19038,19038,19038
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"cf_executed","Executed Control-Flow Instructions",18426,18426,18426
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ldst_issued","Issued Load/Store Instructions",16797,16797,16797
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ldst_executed","Executed Load/Store Instructions",14951,14951,14951
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_sp","Floating Point Operations(Single Precision)",49210,49210,49210
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_sp_add","Floating Point Operations(Single Precision Add)",19000,19000,19000
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_sp_mul","Floating Point Operation(Single Precision Mul)",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_sp_fma","Floating Point Operations(Single Precision FMA)",15105,15105,15105
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_dp","Floating Point Operations(Double Precision)",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_dp_add","Floating Point Operations(Double Precision Add)",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_dp_mul","Floating Point Operations(Double Precision Mul)",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_dp_fma","Floating Point Operations(Double Precison FMA)",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_count_sp_special","Floating Point Operations(Single Precision Special)",30,30,30
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_inst_fetch","Issue Stall Reasons (Instructions Fetch)",14.317197%,14.317197%,14.317197%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_exec_dependency","Issue Stall Reasons (Execution Dependency)",44.206173%,44.206173%,44.206173%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_memory_dependency","Issue Stall Reasons (Data Request)",9.407324%,9.407324%,9.407324%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_texture","Issue Stall Reasons (Texture)",2.101938%,2.101938%,2.101938%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_sync","Issue Stall Reasons (Synchronization)",16.087465%,16.087465%,16.087465%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_other","Issue Stall Reasons (Other)",8.769958%,8.769958%,8.769958%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l1_shared_utilization","L1/Shared Memory Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_utilization","L2 Cache Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"tex_utilization","Texture Cache Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"dram_utilization","Device Memory Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"sysmem_utilization","System Memory Utilization","Idle (0)","Idle (0)","Idle (0)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ldst_fu_utilization","Load/Store Function Unit Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"alu_fu_utilization","Arithmetic Function Unit Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"cf_fu_utilization","Control-Flow Function Unit Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"tex_fu_utilization","Texture Function Unit Utilization","Low (1)","Low (1)","Low (1)"
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_executed","Instructions Executed",65057,65057,65057
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_issued","Instructions Issued",68552,68552,68552
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"issue_slots","Issue Slots",59108,59108,59108
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"nc_l2_read_throughput","L2 Throughput (Non-Coherent Reads)",153.616405MB/s,153.616405MB/s,153.616405MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"nc_l2_read_transactions","L2 Non-Coherent Read Transactions",839,839,839
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"nc_cache_global_hit_rate","Non-Coherent Global Hit Rate",96.754854%,96.754854%,96.754854%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"nc_gld_throughput","Non-Coherent Global Memory Load Throughput",4.733729GB/s,4.733729GB/s,4.733729GB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"nc_gld_efficiency","Non-Coherent Global Load Efficiency",15.969482%,15.969482%,15.969482%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_atomic_throughput","L2 Throughput (Atomic requests)",251.572039MB/s,251.572039MB/s,251.572039MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_fp_32","FP Instructions(Single)",39136,39136,39136
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_fp_64","FP Instructions(Double)",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_integer","Integer Instructions",165126,165126,165126
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_bit_convert","Bit-Convert Instructions",15,15,15
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_control","Control-Flow Instructions",48924,48924,48924
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_compute_ld_st","Load/Store Instructions",142635,142635,142635
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_misc","Misc Instructions",94568,94568,94568
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"inst_inter_thread_communication","Inter-Thread Instructions",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"atomic_replay_overhead","Atomic Replay Overhead",0.017451,0.017451,0.017451
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"atomic_transactions","Atomic Transactions",1712,1712,1712
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"atomic_transactions_per_request","Atomic Transactions Per Request",4.933718,4.933718,4.933718
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_l1_read_transactions","L2 Read Transactions (L1 read requests)",798,798,798
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_l1_write_transactions","L2 Write Transactions (L1 write requests)",863,863,863
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_tex_read_transactions","L2 Transactions (Texture Reads)",845,845,845
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_l1_write_throughput","L2 Throughput (L1 Writes)",158.010676MB/s,158.010676MB/s,158.010676MB/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"l2_atomic_transactions","L2 Transactions (Atomic requests)",2748,2748,2748
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ecc_transactions","ECC Transactions",0,0,0
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"ecc_throughput","ECC Throughput",0.000000B/s,0.000000B/s,0.000000B/s
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_pipe_busy","Issue Stall Reasons (Pipe Busy)",0.386449%,0.386449%,0.386449%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_constant_memory_dependency","Issue Stall Reasons (Immediate constant)",2.518295%,2.518295%,2.518295%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_sp_efficiency","FLOP Efficiency(Peak Single)",0.006571%,0.006571%,0.006571%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"flop_dp_efficiency","FLOP Efficiency(Peak Double)",0.000000%,0.000000%,0.000000%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_memory_throttle","Issue Stall Reasons (Memory Throttle)",1.681959%,1.681959%,1.681959%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"stall_not_selected","Issue Stall Reasons (Not Selected)",0.523241%,0.523241%,0.523241%
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"eligible_warps_per_cycle","Eligible Warps Per Active Cycle",0.194131,0.194131,0.194131
+"Tesla K40c (0)","kernel_parent_kmeans(float*, float*, int*, float*, int, int, int, float, int, float*, float*)",1,"atomic_throughput","Atomic Throughput",1.253832GB/s,1.253832GB/s,1.253832GB/s
+==21767== Warning: One or more events or metrics can't be profiled. Rerun with "--print-gpu-trace" for detail.
