@@ -27,6 +27,8 @@ inline int BLK(int number, int blksize)
 	return (number + blksize - 1) / blksize;                                    
 } 
 
+__global__ void kernel_warmup(float* data, const int npoints);
+
 __global__ void kernel_dist(const float* __restrict__ data,
 		const float* __restrict__ clusters,
 		int *membership,
@@ -36,6 +38,16 @@ __global__ void kernel_dist(const float* __restrict__ data,
 		float* delta,
 		float* new_clusters,
 		float* new_clusters_members);
+
+__global__ void kernel_dist_part1(const float* __restrict__ data,
+		const float* __restrict__ clusters,
+		int *membership,
+		const int npoints,
+		const int nfeatures,
+		const int nclusters,
+		float* delta,
+		float *new_clusters,
+		float *new_clusters_members);
 
 //----------------------------------------------------------------------------//
 // GPU Kmeans Class
@@ -48,6 +60,7 @@ public:
 	void print_param() const;
 	void ReadDataFromFile();
 	void run();
+	void WarmUp();
 	void runKmeans_gpu(int nclusters);
 
 	char 			*filename;
@@ -194,6 +207,8 @@ void KmeansGPU::ReadDataFromFile()
 //----------------------------------------------------------------------------//
 void KmeansGPU::run()                                                
 {
+	WarmUp();
+
 	cudaEventRecord(startEvent);
 
 	// search the best clusters for the input data                              
@@ -244,6 +259,28 @@ void KmeansGPU::run()
 	cudaEventElapsedTime(&gpuTime, startEvent, stopEvent);
 	printf("GPU Elapsed Time : %f ms\n", gpuTime);
 }
+
+//----------------------------------------------------------------------------//
+// warm up
+//----------------------------------------------------------------------------//
+void KmeansGPU::WarmUp()
+{
+	/*
+	// each point working on computing the closest clusters
+	for(int i=0; i<10; i++)
+		kernel_warmup <<< BLK(npoints, 32), 32 >>> (data, npoints);
+
+	cudaDeviceSynchronize();
+	*/
+}
+
+__global__ void kernel_warmup(float* data, const int npoints)
+{
+	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
+	if(gx < npoints)
+		data[gx] = data[gx] * threadIdx.x; 
+}
+
 
 //----------------------------------------------------------------------------//
 // Run Kmeans : GPU Kernels
@@ -371,6 +408,68 @@ __global__ void kernel_dist(const float* __restrict__ data,
 	}
 }
 
+//----------------------------------------------------------------------------//
+// dev 1
+//----------------------------------------------------------------------------//
+__global__ void kernel_dist_part1(const float* __restrict__ data,
+		const float* __restrict__ clusters,
+		int *membership,
+		const int npoints,
+		const int nfeatures,
+		const int nclusters,
+		float* delta,
+		float *new_clusters,
+		float *new_clusters_members)
+{
+	extern __shared__ float local_cluster[]; 
+
+	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
+	uint lx = threadIdx.x;
+
+	float dist_min = FLT_MAX;
+	int prev_id;
+	int curr_id;
+	size_t baseInd       = lx * (nfeatures + 1);
+	size_t data_base_ind = gx * nfeatures;
+	
+	// initialize shared memory
+	if(lx < nclusters) {
+		for(int f=0; f<nfeatures+1; f++)
+			local_cluster[baseInd + f] = 0.f;
+	}
+
+	__syncthreads();
+
+
+	if(gx < npoints) {
+		// load the membership
+		curr_id = prev_id = membership[gx];
+
+		// go through each cluster
+		for(int k=0; k<nclusters; k++)
+		{
+			float dist_cluster = 0.f;
+			size_t center_base_ind = k * nfeatures;
+			for(int f=0; f<nfeatures; f++)
+			{
+				float diff = data[data_base_ind + f] - clusters[center_base_ind + f];
+				dist_cluster += diff * diff;
+			}
+
+			// update the id for the closest center
+			if(dist_cluster < dist_min) {                                       
+				dist_min = dist_cluster;                                        
+				curr_id = k;                                                         
+			}  
+		}
+
+		// update membership
+		if(prev_id != curr_id) {
+			membership[gx] = curr_id; 
+			atomicAdd(&delta[0], 1.f);
+		}
+	}
+}
 
 
 #endif
