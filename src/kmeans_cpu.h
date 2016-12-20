@@ -144,6 +144,7 @@ void KmeansCpu::ReadDataFromFile()
 
 	// use -1 as default 
 	membership = (int*) malloc(npoints * INT_SIZE);
+
 	//memset(membership, -1, npoints * INT_SIZE);
 	//for (int i=0; i < npoints; i++) { 
 	//	std::cout << membership[i] << std::endl;

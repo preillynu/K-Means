@@ -22,30 +22,24 @@
 #define FLT_SIZE sizeof(float)                                                  
 #endif 
 
+
+// 16K floats
+__constant__ float clusters_cnst[16384];
+
 inline int BLK(int number, int blksize)                                         
 {                                                                               
 	return (number + blksize - 1) / blksize;                                    
 } 
 
-__global__ void kernel_warmup(float* data, const int npoints);
 
 __global__ void kernel_dist(const float* __restrict__ data,
-		const float* __restrict__ clusters,
-		int *membership,
+		const int* __restrict__ membership,
 		const int npoints,
 		const int nfeatures,
 		const int nclusters,
+		const int warps_per_blk,
 		float* delta,
-		float* new_clusters,
-		float* new_clusters_members);
-
-__global__ void kernel_dist_part1(const float* __restrict__ data,
-		const float* __restrict__ clusters,
-		int *membership,
-		const int npoints,
-		const int nfeatures,
-		const int nclusters,
-		float* delta,
+		int* new_membership,
 		float *new_clusters,
 		float *new_clusters_members);
 
@@ -60,7 +54,6 @@ public:
 	void print_param() const;
 	void ReadDataFromFile();
 	void run();
-	void WarmUp();
 	void runKmeans_gpu(int nclusters);
 
 	char 			*filename;
@@ -79,10 +72,13 @@ public:
 	// using unified memory
 	float 			*data;
 	int 			*membership;
+	int 			*new_membership;
 	float           *delta;
 	float           *clusters;
 	float           *new_clusters;
 	float           *new_clusters_members;
+
+	size_t membership_bytes;
 
 	dim3            blkDim;
 	dim3            grdDim;
@@ -106,6 +102,7 @@ KmeansGPU::KmeansGPU() :
 {
 	data       = NULL;
 	membership = NULL;
+	new_membership = NULL;
 	delta      = NULL;
 	clusters    = NULL;
 	new_clusters    = NULL;
@@ -117,12 +114,13 @@ KmeansGPU::KmeansGPU() :
 }
 
 KmeansGPU::~KmeansGPU() {
-	if(data       != NULL)                 cudaFreeHost(data);
-	if(membership != NULL)                 cudaFreeHost(membership);
-	if(delta      != NULL)                 cudaFreeHost(delta);
-	if(clusters   != NULL)                 cudaFreeHost(clusters);
-	if(new_clusters != NULL)               cudaFreeHost(new_clusters);
-	if(new_clusters_members != NULL)       cudaFreeHost(new_clusters_members);
+	if(data       != NULL)                 cudaFree(data);
+	if(membership != NULL)                 cudaFree(membership);
+	if(new_membership != NULL)             cudaFree(new_membership);
+	if(delta      != NULL)                 cudaFree(delta);
+	if(clusters   != NULL)                 cudaFree(clusters);
+	if(new_clusters != NULL)               cudaFree(new_clusters);
+	if(new_clusters_members != NULL)       cudaFree(new_clusters_members);
 }
 
 void KmeansGPU::print_param() const
@@ -162,13 +160,16 @@ void KmeansGPU::ReadDataFromFile()
 		if (strtok(line, " \t\n") != NULL)
 			npoints++;			
 	}
+
 	rewind(infile);
+
 	// error check for clusters
 	if (npoints < min_nclusters){
 		fprintf(stderr, "Error: min_nclusters(%d) > npoints(%d) -- cannot proceed\n", 
 				min_nclusters, npoints);
 		exit(1);
 	}
+
 	// read feature dim
 	while (fgets(line, MAX_LINE_LEN, infile) != NULL) {
 		if (strtok(line, " \t\n") != NULL) {
@@ -180,7 +181,6 @@ void KmeansGPU::ReadDataFromFile()
 	}        
 	rewind(infile);
 
-	if(data != NULL)          cudaFreeHost(data);
 	cudaMallocManaged((void **)&data, npoints * nfeatures * FLT_SIZE);
 
 	int sample_num = 0;
@@ -197,7 +197,10 @@ void KmeansGPU::ReadDataFromFile()
 	fclose(infile);
 	//printf("=> %d\n", sample_num);
 
-	cudaMallocManaged((void**)&membership, npoints * INT_SIZE);	
+	membership_bytes = npoints * INT_SIZE;
+
+	cudaMallocManaged((void**)&membership,     membership_bytes);	
+	cudaMallocManaged((void**)&new_membership, membership_bytes);	
 	cudaMallocManaged((void**)&delta, FLT_SIZE);	
 }
 
@@ -207,8 +210,6 @@ void KmeansGPU::ReadDataFromFile()
 //----------------------------------------------------------------------------//
 void KmeansGPU::run()                                                
 {
-	WarmUp();
-
 	cudaEventRecord(startEvent);
 
 	// search the best clusters for the input data                              
@@ -220,15 +221,17 @@ void KmeansGPU::run()
 					nclusters, npoints);                                        
 			exit(1);                                                            
 		}                                                                       
+
+		int clusters_datapoints = nclusters * nfeatures;
+		size_t clusters_bytes = clusters_datapoints * FLT_SIZE;
+
 		//--------------------------------------------------------------------//
 		// for different number of clusters, clusters need to be allocated       
-		// the membership is intialized with -1                                 
 		//--------------------------------------------------------------------//
-		cudaMallocManaged((void**)&clusters,             nclusters * nfeatures * FLT_SIZE);
-		cudaMallocManaged((void**)&new_clusters,         nclusters * nfeatures * FLT_SIZE);
+		cudaMallocManaged((void**)&clusters,             clusters_bytes);
+		cudaMallocManaged((void**)&new_clusters,         clusters_bytes);
 		cudaMallocManaged((void**)&new_clusters_members, nclusters * FLT_SIZE);
 
-		cudaMemset(membership, -1, npoints * INT_SIZE);
 
 		//--------------------------------------------------------------------//
 		// pick the first [nclusters] samples as the initial clusters           
@@ -239,46 +242,45 @@ void KmeansGPU::run()
 			}                                                                   
 		}                                                                       
 
-		int loop = 0;
-		do {
+		//----------------------//
+		// copy clusters to contant memory
+		//----------------------//
+		cudaMemcpyToSymbol(clusters_cnst, clusters, clusters_bytes, 0, cudaMemcpyHostToDevice);
+
+		// the membership is intialized with 0 
+		cudaMemset(membership, 0, membership_bytes);
+
+		for(int loop=0; loop<nloops; loop++)
+		{
 			delta[0] = 0.f;
+
 			runKmeans_gpu(nclusters);
+		
+			if(delta[0] < threshold)
+				break;
+
+			// update membership
+			cudaMemcpy(membership, new_membership, membership_bytes, cudaMemcpyDeviceToDevice);
+
+			// update clusters in the constant memsory 
+			cudaMemcpyToSymbol(clusters_cnst, clusters, clusters_bytes, 0, cudaMemcpyHostToDevice);
+
 			//printf("loop: %d \t delta : %f\n", loop, delta[0]);
-		} while((delta[0] > threshold) && (++loop < nloops));
+		}
+
 
 		//--------------------------------------------------------------------//
 		// release resources                                                    
 		//--------------------------------------------------------------------//
-		if(clusters != NULL) cudaFreeHost(clusters);                                      
-		if(new_clusters != NULL) cudaFreeHost(new_clusters);
-		if(new_clusters_members != NULL) cudaFreeHost(new_clusters_members);
+		if(clusters != NULL) cudaFree(clusters);                                      
+		if(new_clusters != NULL) cudaFree(new_clusters);
+		if(new_clusters_members != NULL) cudaFree(new_clusters_members);
 	}
 
 	cudaEventRecord(stopEvent);
 	cudaEventSynchronize(stopEvent);
 	cudaEventElapsedTime(&gpuTime, startEvent, stopEvent);
 	printf("GPU Elapsed Time : %f ms\n", gpuTime);
-}
-
-//----------------------------------------------------------------------------//
-// warm up
-//----------------------------------------------------------------------------//
-void KmeansGPU::WarmUp()
-{
-	/*
-	// each point working on computing the closest clusters
-	for(int i=0; i<10; i++)
-		kernel_warmup <<< BLK(npoints, 32), 32 >>> (data, npoints);
-
-	cudaDeviceSynchronize();
-	*/
-}
-
-__global__ void kernel_warmup(float* data, const int npoints)
-{
-	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
-	if(gx < npoints)
-		data[gx] = data[gx] * threadIdx.x; 
 }
 
 
@@ -292,66 +294,69 @@ void KmeansGPU::runKmeans_gpu(int nclusters)
 	cudaMemset(new_clusters_members, 0, nclusters * FLT_SIZE);
 
 	// each point working on computing the closest clusters
-	blkDim = dim3(256, 1, 1);
-	grdDim = dim3(BLK(npoints, 256), 1, 1);
+	int blocksize = 128;
+	int warps_per_blk = blocksize >> 5;
+
+	blkDim = dim3(blocksize, 1, 1);
+	grdDim = dim3(BLK(npoints, blocksize), 1, 1);
 
 	size_t sharedmem_size = nclusters * (nfeatures + 1) * FLT_SIZE;
+
 	kernel_dist <<< grdDim, blkDim, sharedmem_size >>> (data, 
-			clusters, 
 			membership, 
 			npoints, 
 			nfeatures, 
 			nclusters, 
+			warps_per_blk,
 			delta,
+			new_membership,
 			new_clusters,
 			new_clusters_members);
 
 	cudaDeviceSynchronize();
 
-	for(int i=0; i<nclusters; i++) {                                        
-		for(int j=0; j<nfeatures; j++) {                                    
-			clusters[i * nfeatures + j] = new_clusters[i * nfeatures + j] / new_clusters_members[i];           
+	// update the clusters locally
+	for(int k=0; k<nclusters; k++) {                                        
+		for(int f=0; f<nfeatures; f++) {                                    
+			clusters[k * nfeatures + f] = new_clusters[k * nfeatures + f] / new_clusters_members[k];           
 			//printf("%f ", clusters[i * nfeatures + j]);
 		}                                                                   
 		//printf("\n");
 	}                                                                       
 }
 
-
-// notes: assume nfeatures is smaller that the block size
-// membership array can be avoided
 __global__ void kernel_dist(const float* __restrict__ data,
-		const float* __restrict__ clusters,
-		int *membership,
+		const int* __restrict__ membership,
 		const int npoints,
 		const int nfeatures,
 		const int nclusters,
+		const int warps_per_blk,
 		float* delta,
+		int* new_membership,
 		float *new_clusters,
 		float *new_clusters_members)
 {
-	extern __shared__ float local_cluster[]; 
+	//extern __shared__ float local_cluster[]; 
+
+	// assume 32 warps = 1024 block size
+	__shared__ float warp_sm[32];
+	__shared__ float feat_sm[32];
+	__shared__ float change_sm[32];
 
 	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
 	uint lx = threadIdx.x;
 
 	float dist_min = FLT_MAX;
-	int prev_id;
-	int curr_id;
-	size_t baseInd       = lx * (nfeatures + 1);
+	int prev_id, curr_id;
+	//size_t baseInd       = lx * (nfeatures + 1);
 	size_t data_base_ind = gx * nfeatures;
-	size_t cluster_base_ind;
+	size_t center_base_ind;
 	
-	// initialize shared memory
-	if(lx < nclusters) {
-		for(int f=0; f<nfeatures+1; f++)
-			local_cluster[baseInd + f] = 0.f;
-	}
-
-	__syncthreads();
-
+	int my_membership = -1;
+	float change = 0.f;
 
 	if(gx < npoints) {
+
 		// load the membership
 		curr_id = prev_id = membership[gx];
 
@@ -359,10 +364,13 @@ __global__ void kernel_dist(const float* __restrict__ data,
 		for(int k=0; k<nclusters; k++)
 		{
 			float dist_cluster = 0.f;
-			size_t center_base_ind = k * nfeatures;
+
+			center_base_ind = k * nfeatures;
+
+			// each feature dim
 			for(int f=0; f<nfeatures; f++)
 			{
-				float diff = data[data_base_ind + f] - clusters[center_base_ind + f];
+				float diff = data[data_base_ind + f] - clusters_cnst[center_base_ind + f];
 				dist_cluster += diff * diff;
 			}
 
@@ -373,103 +381,114 @@ __global__ void kernel_dist(const float* __restrict__ data,
 			}  
 		}
 
+		//--------------------------------------------------------------------//
 		// update membership
+		//--------------------------------------------------------------------//
 		if(prev_id != curr_id) {
-			membership[gx] = curr_id; 
-			atomicAdd(&delta[0], 1.f);
+			my_membership = curr_id;
+			new_membership[gx] = curr_id;	// update
+			change = 1.f;
 		}
 	}
 
-	// accumulate the data value across each dim locally 
-	// accumulate the membership for each cluster locally
-	if(gx < npoints)
-	{
-		cluster_base_ind = curr_id * (nfeatures + 1);
-		for(int f=0; f<nfeatures; f++)
-			atomicAdd(&local_cluster[cluster_base_ind + f], data[data_base_ind + f]);
 
-		// member counts
-		atomicAdd(&local_cluster[cluster_base_ind + nfeatures], 1.f);
-	}
+	int lane_id = threadIdx.x & 0x1F;
+	int warp_id = threadIdx.x>>5;
 
+
+	//---------------------------------------------------------------//
+	// update delta
+	//---------------------------------------------------------------//
+	#pragma unroll                                                      
+	for (int i=16; i>0; i>>=1) change += __shfl_down(change, i, 32);
+	if(lane_id == 0) change_sm[warp_id] = change;
 	__syncthreads();
+	if(warp_id == 0) {
+		change = (lx < warps_per_blk) ? change_sm[lx] : 0;	
+		#pragma unroll
+		for (int i=16; i>0; i>>=1) change += __shfl_down(change, i, 32);
+		if(lx == 0) {
+			atomicAdd(&delta[0], change);	
+		}
+	}
 
-	// update the global counts
-	// new clusters, new cluster counts
-	if(lx < nclusters)
+
+	for(int k=0; k<nclusters; k++)
 	{
-		// accumulate data globally
-		size_t out_ind = lx * nfeatures;
-		for(int f=0; f<nfeatures; f++)
-			atomicAdd(&new_clusters[out_ind + f], local_cluster[baseInd + f]);
+		int   flag = 0;
+		float tmp  = 0.f;			// for membership number
+		if(my_membership == k) {
+			flag = 1;
+			tmp  = 1.f;	
+		}
 
-		// accumulate counts globally
-		atomicAdd(&new_clusters_members[lx], local_cluster[baseInd + nfeatures]);
-	}
-}
+		//-------------------------------------------------------------//
+		// counter the members for current cluster 
+		//-------------------------------------------------------------//
+		// warp reduction 
+#pragma unroll                                                      
+		for (int i=16; i>0; i>>=1 ) {                                       
+			tmp += __shfl_down(tmp, i, 32);
+		}
 
-//----------------------------------------------------------------------------//
-// dev 1
-//----------------------------------------------------------------------------//
-__global__ void kernel_dist_part1(const float* __restrict__ data,
-		const float* __restrict__ clusters,
-		int *membership,
-		const int npoints,
-		const int nfeatures,
-		const int nclusters,
-		float* delta,
-		float *new_clusters,
-		float *new_clusters_members)
-{
-	extern __shared__ float local_cluster[]; 
+		if(lane_id == 0) {
+			warp_sm[warp_id] = tmp;
+		}
 
-	uint gx = threadIdx.x + __umul24(blockDim.x, blockIdx.x);
-	uint lx = threadIdx.x;
+		__syncthreads();
 
-	float dist_min = FLT_MAX;
-	int prev_id;
-	int curr_id;
-	size_t baseInd       = lx * (nfeatures + 1);
-	size_t data_base_ind = gx * nfeatures;
-	
-	// initialize shared memory
-	if(lx < nclusters) {
-		for(int f=0; f<nfeatures+1; f++)
-			local_cluster[baseInd + f] = 0.f;
-	}
+		if(warp_id == 0) {
+			tmp = (lx < warps_per_blk) ? warp_sm[lx] : 0.f;	
 
-	__syncthreads();
+#pragma unroll
+			for (int i=16; i>0; i>>=1) {                                       
+				tmp += __shfl_down(tmp, i, 32);
+			} 
+
+			if(lx == 0) { 	// add the local count to the global count
+				atomicAdd(&new_clusters_members[k], tmp);	
+			}
+		}
 
 
-	if(gx < npoints) {
-		// load the membership
-		curr_id = prev_id = membership[gx];
 
-		// go through each cluster
-		for(int k=0; k<nclusters; k++)
+		//------------------------------------------------------------//
+		// accumuate new clusters for each feature dim
+		//------------------------------------------------------------//
+		float feat;
+		for(int f=0; f<nfeatures; f++) 
 		{
-			float dist_cluster = 0.f;
-			size_t center_base_ind = k * nfeatures;
-			for(int f=0; f<nfeatures; f++)
-			{
-				float diff = data[data_base_ind + f] - clusters[center_base_ind + f];
-				dist_cluster += diff * diff;
+			
+			// load feature value for current data point
+			feat = 0.f;
+			if(flag == 1) {
+				feat = data[gx * nfeatures + f];
 			}
 
-			// update the id for the closest center
-			if(dist_cluster < dist_min) {                                       
-				dist_min = dist_cluster;                                        
-				curr_id = k;                                                         
-			}  
+			//------------------------------------//
+			// reduction for feature values
+			//------------------------------------//
+			// sum current warp
+			#pragma unroll                                                      
+			for (int i=16; i>0; i>>=1) feat += __shfl_down(feat, i, 32);
+			// save warp sum to shared memory using the 1st lane
+			if(lane_id == 0) feat_sm[warp_id] = feat;
+			__syncthreads();
+			// use the 1st warp to accumulate the block sum
+			if(warp_id == 0) {
+				feat = (lx < warps_per_blk) ? feat_sm[lx] : 0.f;	
+				#pragma unroll
+				for (int i=16; i>0; i>>=1) feat += __shfl_down(feat, i, 32);
+				// add the local count to the global count
+				if(lx == 0) {
+					atomicAdd(&new_clusters[k * nfeatures + f], feat);	
+				}
+			}
 		}
 
-		// update membership
-		if(prev_id != curr_id) {
-			membership[gx] = curr_id; 
-			atomicAdd(&delta[0], 1.f);
-		}
 	}
 }
+
 
 
 #endif
