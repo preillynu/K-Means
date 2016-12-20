@@ -79,6 +79,7 @@ public:
 	float           *new_clusters_members;
 
 	size_t membership_bytes;
+	int loop;
 
 	dim3            blkDim;
 	dim3            grdDim;
@@ -250,8 +251,11 @@ void KmeansGPU::run()
 		// the membership is intialized with 0 
 		cudaMemset(membership, 0, membership_bytes);
 
-		for(int loop=0; loop<nloops; loop++)
+		loop = 0;
+		for(int i=0; i<nloops; i++)
 		{
+			loop++;
+
 			delta[0] = 0.f;
 
 			runKmeans_gpu(nclusters);
@@ -281,6 +285,8 @@ void KmeansGPU::run()
 	cudaEventSynchronize(stopEvent);
 	cudaEventElapsedTime(&gpuTime, startEvent, stopEvent);
 	printf("GPU Elapsed Time : %f ms\n", gpuTime);
+
+	printf("loop: %d\n", loop);
 }
 
 

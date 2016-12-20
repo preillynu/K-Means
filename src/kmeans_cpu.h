@@ -45,6 +45,8 @@ public:
 
 	float 			*data;
 	int 			*membership;
+
+	//int loop;
 };
 
 KmeansCpu::KmeansCpu() : 
@@ -204,12 +206,18 @@ void run_cpu(KmeansCpu &kmeans)
 		}
 
 		float delta;
+
+	
 		int loop = 0;
+
 		do {
 			delta = 0.f;
 			run_kmeans_cpu(nclusters, nfeatures, npoints, data, membership, centers, delta);
 			//printf("loop: %d \t delta : %f\n", loop, delta);
 		} while((delta>threshold) && (++loop < nloops));
+
+
+		printf("loop: %d\n", loop);
 
 
 		/*
